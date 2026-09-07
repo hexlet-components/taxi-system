@@ -17,6 +17,7 @@
 | --- | --- |
 | [schema.sql](./monolith/database/schema.sql) | Базовые таблицы пассажиров, водителей, поездок и истории |
 | [seed.sql](./monolith/database/seed.sql) | Данные для исследования индексов |
+| [first-load.js](./monolith/load-testing/first-load.js) | Первый пример k6 с двумя виртуальными клиентами |
 | [read-load.js](./monolith/load-testing/read-load.js) | Сценарий нагрузки k6 для чтения подготовленного HTTP-адреса |
 | [nginx.conf](./monolith/nginx/nginx.conf) | Локальный балансировщик перед двумя экземплярами приложения |
 
