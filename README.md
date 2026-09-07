@@ -27,16 +27,14 @@
 Из каталога репозитория создайте пустую учебную базу и загрузите схему.
 
 ```bash
-createdb taxi_model
-psql -d taxi_model -v ON_ERROR_STOP=1 -f monolith/database/schema.sql
+createdb taxi_development
+psql -d taxi_development -v ON_ERROR_STOP=1 -f monolith/database/schema.sql
 ```
 
-Для исследования индексов создайте отдельную базу. Скрипт заполнения добавляет большой набор поездок; запускайте его один раз в этой учебной базе.
+Для исследования индексов загрузите набор поездок в ту же учебную базу. Скрипт удалит её текущие данные и сбросит счётчики идентификаторов перед загрузкой.
 
 ```bash
-createdb taxi_indexes
-psql -d taxi_indexes -v ON_ERROR_STOP=1 -f monolith/database/schema.sql
-psql -d taxi_indexes -v ON_ERROR_STOP=1 -f monolith/database/seed.sql
+psql -d taxi_development -v ON_ERROR_STOP=1 -f monolith/database/seed.sql
 ```
 
 Схема содержит базовые связи. Дополнительные ограничения и индексы вводятся в уроках по мере разбора соответствующих задач.

@@ -1,3 +1,5 @@
+TRUNCATE trip_events, trips, drivers, passengers RESTART IDENTITY;
+
 INSERT INTO passengers (name, phone)
 SELECT 'Passenger ' || n, '+79' || LPAD(n::TEXT, 9, '0')
 FROM generate_series(1, 10000) AS s(n);
@@ -20,11 +22,11 @@ SELECT
     TIMESTAMPTZ '2026-01-01 00:00:00+00' + n * INTERVAL '1 second'
 FROM generate_series(1, 2000000) AS s(n);
 
-CREATE UNIQUE INDEX trips_one_active_per_passenger
+CREATE UNIQUE INDEX IF NOT EXISTS trips_one_active_per_passenger
 ON trips (passenger_id)
 WHERE status IN ('searching', 'accepted', 'in_progress');
 
-CREATE UNIQUE INDEX trips_one_active_per_driver
+CREATE UNIQUE INDEX IF NOT EXISTS trips_one_active_per_driver
 ON trips (driver_id)
 WHERE status IN ('accepted', 'in_progress');
 
