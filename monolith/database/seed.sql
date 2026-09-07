@@ -22,12 +22,25 @@ SELECT
     TIMESTAMPTZ '2026-01-01 00:00:00+00' + n * INTERVAL '1 second'
 FROM generate_series(1, 2000000) AS s(n);
 
-CREATE UNIQUE INDEX IF NOT EXISTS trips_one_active_per_passenger
-ON trips (passenger_id)
-WHERE status IN ('searching', 'accepted', 'in_progress');
+UPDATE drivers AS d
+SET name = sample.name, is_available = sample.is_available
+FROM (VALUES
+    (901, 'Анна', TRUE),
+    (902, 'Борис', TRUE),
+    (903, 'Вера', FALSE),
+    (904, 'Глеб', TRUE),
+    (905, 'Дарья', TRUE)
+) AS sample(id, name, is_available)
+WHERE d.id = sample.id;
 
-CREATE UNIQUE INDEX IF NOT EXISTS trips_one_active_per_driver
-ON trips (driver_id)
-WHERE status IN ('accepted', 'in_progress');
+UPDATE trips AS t
+SET pickup_address = sample.address
+FROM (VALUES
+    (1101, 'улица Садовая, 7, подъезд 3'),
+    (1102, 'улица Садовая, 7, подъезд 3'),
+    (1103, 'улица Садовая, 9'),
+    (1104, 'улица Полевая, 7, подъезд 3')
+) AS sample(id, address)
+WHERE t.id = sample.id;
 
 ANALYZE trips;

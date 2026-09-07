@@ -31,7 +31,7 @@ createdb taxi_development
 psql -d taxi_development -v ON_ERROR_STOP=1 -f monolith/database/schema.sql
 ```
 
-Для исследования индексов загрузите набор поездок в ту же учебную базу. Скрипт удалит её текущие данные и сбросит счётчики идентификаторов перед загрузкой.
+В рамках подготовки базы загрузите учебный набор поездок. Скрипт удалит её текущие данные и сбросит счётчики идентификаторов перед загрузкой.
 
 ```bash
 psql -d taxi_development -v ON_ERROR_STOP=1 -f monolith/database/seed.sql
