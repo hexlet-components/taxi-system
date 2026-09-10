@@ -1,0 +1,136 @@
+---
+# Стенд сервиса. Приложение, база, копия базы, балансировщик, стаб сервиса
+# уведомлений и генератор нагрузки.
+#
+# Имена сервисов, порты и переменные окружения менять нельзя, по ним ходит
+# проверка.
+services:
+  db:
+    # imresamu вместо postgis/postgis: официальный образ собран только под
+    # amd64, и на arm64-машине стенд поднимался бы через эмуляцию. Это те же
+    # сборки PostGIS, мультиархитектурные.
+    image: imresamu/postgis:18-3.6-alpine
+    command: >
+      postgres
+      -c wal_level=logical
+      -c shared_preload_libraries=pg_stat_statements
+      -c max_connections=100
+    environment:
+      POSTGRES_DB: taxi
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      # postgres:18 держит данные в /var/lib/postgresql, а не в его подкаталоге
+      # data: том на прежнем пути перестаёт сохранять базу молча.
+      - pgdata:/var/lib/postgresql
+      - ./db/primary-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taxi || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 40
+      start_period: 10s
+
+  replica:
+    image: imresamu/postgis:18-3.6-alpine
+    environment:
+      POSTGRES_DB: taxi
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - replicadata:/var/lib/postgresql
+      - ./db/replica-init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taxi || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 40
+      start_period: 10s
+
+  notifications:
+    image: node:24-alpine
+    command: node /stub/index.ts
+    volumes:
+      - ./stub:/stub:ro
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  app: &app
+    build:
+      context: .
+    # Решение монтируется целиком: зависимости ставит `make setup` в этом же
+    # каталоге, поэтому запуск их видит.
+    volumes:
+      - .:/app
+    command: make start
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://postgres@db:5432/taxi
+      REPLICA_URL: postgres://postgres@replica:5432/taxi
+      NOTIFICATIONS_URL: http://notifications:8080/notify
+      INSTANCE: app
+    # Лимиты держат замеры сравнимыми между машинами и дают шагу про лимиты
+    # контейнера наблюдаемый предел.
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    depends_on:
+      db:
+        condition: service_healthy
+      # Копия базы нужна приложению и при запуске, и при миграциях: логическая
+      # репликация не переносит изменения схемы, поэтому индексы на копию
+      # накатывает сам сервис.
+      replica:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
+
+  # Второй экземпляр за балансировщиком. Отдельный сервис вместо `--scale`:
+  # nginx резолвит имена upstream при старте, и перезапуск одного экземпляра
+  # тогда виден проверке обновления без остановки.
+  app2:
+    <<: *app
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://postgres@db:5432/taxi
+      REPLICA_URL: postgres://postgres@replica:5432/taxi
+      NOTIFICATIONS_URL: http://notifications:8080/notify
+      INSTANCE: app2
+
+  nginx:
+    image: nginx:1-alpine
+    # nginx резолвит имена upstream один раз при старте и падает, если
+    # экземпляр ещё не поднялся. Healthcheck у app потребовал бы curl или wget
+    # в образе решения, поэтому балансировщик просто перезапускается.
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      # Порт задаётся переменной: на машине студента 8080 бывает занят другим
+      # стендом, и тогда весь compose не поднимается.
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      app:
+        condition: service_started
+      app2:
+        condition: service_started
+
+  k6:
+    profiles: ["load"]
+    image: grafana/k6:latest
+    volumes:
+      - ./load:/load
+      - ./reports:/reports
+    working_dir: /load
+    environment:
+      TARGET_URL: http://nginx:8080
+
+volumes:
+  pgdata:
+  replicadata:

@@ -1,4 +1,8 @@
-TRUNCATE trip_events, trips, drivers, passengers RESTART IDENTITY;
+-- Два миллиона поездок для шага про индексы. Заливается вручную, потому что
+-- на таком объёме initdb стенда идёт минуты.
+-- CASCADE нужен потому, что миграции добавляют таблицы, ссылающиеся на
+-- поездки, и без него заливка падает на внешнем ключе.
+TRUNCATE trip_events, trips, drivers, passengers RESTART IDENTITY CASCADE;
 
 INSERT INTO passengers (name, phone)
 SELECT 'Passenger ' || n, '+79' || LPAD(n::TEXT, 9, '0')
@@ -16,22 +20,11 @@ SELECT
     1 + (n - 1) % 10000,
     1 + (n - 1) % 1000,
     'completed',
-    300 + n % 1000,
+    300 + n % 10000,
     'Лесная улица, 10',
     'Садовая улица, 5',
     TIMESTAMPTZ '2026-01-01 00:00:00+00' + n * INTERVAL '1 second'
 FROM generate_series(1, 2000000) AS s(n);
-
-UPDATE drivers AS d
-SET name = sample.name, is_available = sample.is_available
-FROM (VALUES
-    (901, 'Анна', TRUE),
-    (902, 'Борис', TRUE),
-    (903, 'Вера', FALSE),
-    (904, 'Глеб', TRUE),
-    (905, 'Дарья', TRUE)
-) AS sample(id, name, is_available)
-WHERE d.id = sample.id;
 
 UPDATE trips AS t
 SET pickup_address = sample.address

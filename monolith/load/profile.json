@@ -1,0 +1,22 @@
+{
+  "city": {
+    "tripsPerDay": 200000,
+    "driversOnline": 20000,
+    "locationIntervalSeconds": 4,
+    "peakFactor": 3
+  },
+  "stand": {
+    "note": "Стенд держит долю городской нагрузки: у приложения половина ядра и 512 МБ. Коэффициент подобран так, чтобы базовый прогон шёл без отказов.",
+    "scale": 0.002,
+    "orderRate": 5,
+    "readRate": 20,
+    "locationRate": 40,
+    "historyRate": 5,
+    "duration": "30s",
+    "warmup": "10s"
+  },
+  "targets": {
+    "p95Ms": 500,
+    "errorRate": 0
+  }
+}
