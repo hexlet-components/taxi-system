@@ -1,22 +1,23 @@
 {
   "city": {
-    "tripsPerDay": 200000,
-    "driversOnline": 20000,
-    "locationIntervalSeconds": 4,
-    "peakFactor": 3
+    "note": "Исходные числа из шага про требования. Заполните расчётом.",
+    "tripsPerDay": 0,
+    "driversOnline": 0,
+    "locationIntervalSeconds": 0,
+    "peakFactor": 0
   },
   "stand": {
-    "note": "Стенд держит долю городской нагрузки: у приложения половина ядра и 512 МБ. Коэффициент подобран так, чтобы базовый прогон шёл без отказов.",
-    "scale": 0.002,
-    "orderRate": 5,
-    "readRate": 20,
-    "locationRate": 40,
-    "historyRate": 5,
+    "note": "Частоты стенда. Множитель к городским числам объясните в docs требований.",
+    "scale": 0,
+    "orderRate": 0,
+    "readRate": 0,
+    "locationRate": 0,
+    "historyRate": 0,
     "duration": "30s",
     "warmup": "10s"
   },
   "targets": {
-    "p95Ms": 500,
+    "p95Ms": 0,
     "errorRate": 0
   }
 }

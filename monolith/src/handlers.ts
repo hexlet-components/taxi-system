@@ -157,15 +157,8 @@ export const createTrip = async (
     throw error;
   }
 
-  const notified = await notify(
-    { event: 'trip_created', tripId: Number(created.id) },
-    idempotencyKey,
-  );
-  return {
-    status: 201,
-    body: { ...tripView(created), notified },
-    headers: { 'x-notified': String(notified) },
-  };
+  await notify({ event: 'trip_created', tripId: Number(created.id) }, idempotencyKey);
+  return { status: 201, body: tripView(created) };
 };
 
 export const acceptTrip = async (
