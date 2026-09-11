@@ -8,20 +8,29 @@ const makePool = (connectionString: string) =>
   new Pool({
     connectionString,
     max: config.poolSize,
+    connectionTimeoutMillis: config.poolTimeoutMs,
+    statement_timeout: config.statementTimeoutMs,
   });
 
 export const primary = makePool(config.databaseUrl);
-// Копия базы поднята в стенде, но сервис пока читает всё из основной.
-export const replica = primary;
+export const replica = config.replicaUrl === '' ? primary : makePool(config.replicaUrl);
 
-// Соединение и запрос замеряются раздельно, потому что ожидание в пуле и
-// время самой команды упираются в разные пределы.
+export class PoolTimeoutError extends Error {}
+
+// Соединение и запрос замеряются раздельно: ожидание в пуле и время самой
+// команды упираются в разные пределы, и по одной цифре их не различить.
 const withClient = async <T>(
   pool: pg.Pool,
   run: (client: pg.PoolClient) => Promise<T>,
 ): Promise<T> => {
   const waitStarted = performance.now();
-  const client = await pool.connect();
+  let client: pg.PoolClient;
+  try {
+    client = await pool.connect();
+  } catch (error) {
+    metrics.poolWait(performance.now() - waitStarted);
+    throw new PoolTimeoutError(error instanceof Error ? error.message : 'pool timeout');
+  }
   metrics.poolWait(performance.now() - waitStarted);
   const sqlStarted = performance.now();
   try {

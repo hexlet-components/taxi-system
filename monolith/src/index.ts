@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from './config.ts';
 import { metrics } from './metrics.ts';
-import { primary, replica } from './db.ts';
+import { PoolTimeoutError, primary, replica } from './db.ts';
 import * as handlers from './handlers.ts';
 import type { Reply } from './handlers.ts';
 
@@ -28,6 +28,8 @@ type Route = {
 const routes: Route[] = [
   { method: 'GET', pattern: /^\/health$/, run: () => handlers.health() },
   { method: 'GET', pattern: /^\/metrics$/, run: () => handlers.snapshot() },
+  { method: 'POST', pattern: /^\/admin\/drain$/, run: () => handlers.drain() },
+  { method: 'POST', pattern: /^\/admin\/undrain$/, run: () => handlers.undrain() },
   {
     method: 'POST',
     pattern: /^\/trips$/,
@@ -75,6 +77,11 @@ const routes: Route[] = [
   },
 ];
 
+// Запросы в обработке. Предел проверяется до обращения к базе, потому что
+// принятая и не обслуженная работа продлевает перегрузку вместо того, чтобы
+// её разгрузить.
+let inflight = 0;
+
 const send = (response: ServerResponse, reply: Reply, startedAt: number) => {
   const headers: Record<string, string> = {
     'content-type': 'application/json',
@@ -89,6 +96,37 @@ const send = (response: ServerResponse, reply: Reply, startedAt: number) => {
 const server = createServer(async (request, response) => {
   const startedAt = performance.now();
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
+  // Метрики, проверка готовности и вывод экземпляра из работы остаются
+  // доступными под перегрузкой и во время слива: балансировщику нужен ответ
+  // проверки, а стенд иначе нечем наблюдать.
+  const alwaysServed =
+    url.pathname === '/metrics' ||
+    url.pathname === '/health' ||
+    url.pathname.startsWith('/admin/');
+
+  if (!alwaysServed) {
+    if (handlers.isDraining()) {
+      send(response, { status: 503, body: { error: 'instance is draining' } }, startedAt);
+      return;
+    }
+    if (config.maxInflight > 0 && inflight >= config.maxInflight) {
+      // Общая перегрузка обозначается 503. Nginx может попробовать второй
+      // экземпляр, но max_fails=0 не оставляет группу upstream без адресов и
+      // сохраняет итоговый 503, если оба экземпляра исчерпали ёмкость.
+      metrics.overloadRejected();
+      send(
+        response,
+        {
+          status: 503,
+          body: { error: 'service capacity exhausted' },
+          headers: { 'retry-after': String(config.retryAfterSeconds) },
+        },
+        startedAt,
+      );
+      return;
+    }
+  }
+
   const route = routes.find(
     (candidate) => candidate.method === request.method && candidate.pattern.test(url.pathname),
   );
@@ -97,14 +135,31 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  inflight += 1;
   try {
     const match = url.pathname.match(route.pattern);
     if (match === null) throw new Error('route matched but capture failed');
     const reply = await route.run({ match, params: url.searchParams, request });
     send(response, reply, startedAt);
   } catch (error) {
+    if (error instanceof PoolTimeoutError) {
+      // Ожидание соединения кончилось: сервис перегружен, и клиенту это
+      // сообщается отдельным статусом.
+      send(
+        response,
+        {
+          status: 503,
+          body: { error: 'database pool timeout' },
+          headers: { 'retry-after': String(config.retryAfterSeconds) },
+        },
+        startedAt,
+      );
+      return;
+    }
     console.error(error);
     send(response, { status: 500, body: { error: 'internal error' } }, startedAt);
+  } finally {
+    inflight -= 1;
   }
 });
 
@@ -112,6 +167,8 @@ server.listen(config.port, () => {
   console.log(`taxi ${config.instance} listening on ${config.port}`);
 });
 
+// Обновление без остановки: экземпляр перестаёт принимать соединения, доводит
+// начатые запросы и только потом закрывает пулы.
 const shutdown = () => {
   server.close(async () => {
     await primary.end();

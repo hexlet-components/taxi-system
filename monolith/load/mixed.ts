@@ -69,7 +69,7 @@ export const order = () => {
     }),
     { headers: { 'content-type': 'application/json', 'idempotency-key': key }, timeout: '5s' },
   );
-  check(response, { 'order accepted or throttled': (r) => r.status === 201 || r.status === 429 });
+  check(response, { 'order accepted or rejected': (r) => r.status === 201 || r.status === 503 });
 };
 
 export const history = () => {
@@ -85,5 +85,5 @@ export const location = () => {
     JSON.stringify({ lat: 55.756 + Math.random() / 100, lon: 37.619 + Math.random() / 100 }),
     { headers: { 'content-type': 'application/json' }, timeout: '5s' },
   );
-  check(response, { 'location accepted or throttled': (r) => r.status === 200 || r.status === 429 });
+  check(response, { 'location accepted or rejected': (r) => r.status === 200 || r.status === 503 });
 };

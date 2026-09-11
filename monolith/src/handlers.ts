@@ -1,9 +1,14 @@
 import { config } from './config.ts';
+import { cached } from './cache.ts';
 import { metrics } from './metrics.ts';
 import { notify } from './notifications.ts';
 import { primary, query, replica, transaction } from './db.ts';
 
 export type Reply = { status: number; body: unknown; headers?: Record<string, string> };
+
+const state = { draining: false };
+
+export const isDraining = () => state.draining;
 
 const badRequest = (message: string): Reply => ({ status: 400, body: { error: message } });
 
@@ -13,6 +18,9 @@ const asNumber = (value: unknown): number | null => {
 };
 
 export const health = async (): Promise<Reply> => {
+  if (state.draining) {
+    return { status: 503, body: { status: 'draining', instance: config.instance } };
+  }
   try {
     await query('SELECT 1');
     return { status: 200, body: { status: 'ok', instance: config.instance } };
@@ -26,20 +34,31 @@ export const snapshot = async (): Promise<Reply> => ({
   body: { ...metrics.snapshot(), instance: config.instance },
 });
 
-const tariff = async (code: string) => {
-  const result = await query<{
-    code: string;
-    name: string;
-    base_price: string;
-    price_per_km: string;
-  }>('SELECT code, name, base_price, price_per_km FROM tariffs WHERE code = $1', [code]);
-  return result.rows[0] ?? null;
+export const drain = async (): Promise<Reply> => {
+  if (!config.drainEnabled) return { status: 404, body: { error: 'drain is disabled' } };
+  state.draining = true;
+  return { status: 200, body: { draining: true, instance: config.instance } };
 };
 
+export const undrain = async (): Promise<Reply> => {
+  if (!config.drainEnabled) return { status: 404, body: { error: 'drain is disabled' } };
+  state.draining = false;
+  return { status: 200, body: { draining: false, instance: config.instance } };
+};
+
+const tariff = async (code: string) =>
+  cached(`tariff:${code}`, config.tariffCacheTtlMs, async () => {
+    const result = await query<{ code: string; name: string; base_price: string; price_per_km: string }>(
+      'SELECT code, name, base_price, price_per_km FROM tariffs WHERE code = $1',
+      [code],
+    );
+    return result.rows[0] ?? null;
+  });
+
 export const getTariff = async (code: string): Promise<Reply> => {
-  const value = await tariff(code);
+  const { value, hit } = await tariff(code);
   if (value === null) return { status: 404, body: { error: 'tariff not found' } };
-  return { status: 200, body: value };
+  return { status: 200, body: value, headers: { 'x-cache': hit ? 'hit' : 'miss' } };
 };
 
 type TripRow = {
@@ -109,7 +128,7 @@ export const createTrip = async (
     }
   }
 
-  const tariffRow = await tariff(tariffCode);
+  const { value: tariffRow } = await tariff(tariffCode);
   if (tariffRow === null) return badRequest('unknown tariff');
   const price = Number(tariffRow.base_price);
 
@@ -157,8 +176,15 @@ export const createTrip = async (
     throw error;
   }
 
-  await notify({ event: 'trip_created', tripId: Number(created.id) }, idempotencyKey);
-  return { status: 201, body: tripView(created) };
+  const notified = await notify(
+    { event: 'trip_created', tripId: Number(created.id) },
+    idempotencyKey,
+  );
+  return {
+    status: 201,
+    body: { ...tripView(created), notified },
+    headers: { 'x-notified': String(notified) },
+  };
 };
 
 export const acceptTrip = async (
@@ -169,15 +195,8 @@ export const acceptTrip = async (
   if (driverId === null) return badRequest('driverId is required');
 
   return transaction(async (client) => {
-    // Порядок блокировок один во всех обработчиках: сначала водитель, затем
-    // поездка. Разный порядок дал бы взаимную блокировку двух запросов.
-    const driver = await client.query<{ id: string; is_available: boolean }>(
-      'SELECT id, is_available FROM drivers WHERE id = $1 FOR UPDATE',
-      [driverId],
-    );
-    const driverRow = driver.rows[0];
-    if (driverRow === undefined) return { status: 404, body: { error: 'driver not found' } };
-
+    // Назначение и отмена блокируют поездку первой. Единый порядок исключает
+    // цикл ожидания между двумя обработчиками.
     const trip = await client.query<TripRow>(
       `SELECT id, passenger_id, driver_id, status, price,
               pickup_address, destination_address, created_at
@@ -189,6 +208,13 @@ export const acceptTrip = async (
     if (tripRow.status !== 'searching') {
       return { status: 409, body: { error: `trip is ${tripRow.status}` } };
     }
+
+    const driver = await client.query<{ id: string; is_available: boolean }>(
+      'SELECT id, is_available FROM drivers WHERE id = $1 FOR UPDATE',
+      [driverId],
+    );
+    const driverRow = driver.rows[0];
+    if (driverRow === undefined) return { status: 404, body: { error: 'driver not found' } };
     if (!driverRow.is_available) {
       return { status: 409, body: { error: 'driver is busy' } };
     }
@@ -217,6 +243,7 @@ export const cancelTrip = async (
 ): Promise<Reply> => {
   const reason = typeof body.reason === 'string' ? body.reason : 'unspecified';
   return transaction(async (client) => {
+    // Та же последовательность, что при назначении: поездка, затем водитель.
     const trip = await client.query<TripRow>(
       'SELECT id, status, driver_id FROM trips WHERE id = $1 FOR UPDATE',
       [tripId],
@@ -227,9 +254,8 @@ export const cancelTrip = async (
       return { status: 409, body: { error: `trip is ${tripRow.status}` } };
     }
     if (tripRow.driver_id !== null) {
-      await client.query('UPDATE drivers SET is_available = TRUE WHERE id = $1', [
-        tripRow.driver_id,
-      ]);
+      await client.query('SELECT id FROM drivers WHERE id = $1 FOR UPDATE', [tripRow.driver_id]);
+      await client.query('UPDATE drivers SET is_available = TRUE WHERE id = $1', [tripRow.driver_id]);
     }
     await client.query(
       `UPDATE trips SET status = 'cancelled', cancel_reason = $1, driver_id = NULL WHERE id = $2`,
@@ -317,6 +343,9 @@ export const searchTrips = async (params: URLSearchParams): Promise<Reply> => {
 };
 
 export const passengerTrips = async (passengerId: number): Promise<Reply> => {
+  // История читается с копии: запрос тяжёлый, а данные секундной свежести
+  // здесь достаточны.
+  const source = config.readHistoryFromReplica ? replica : primary;
   const result = await query<TripRow>(
     `SELECT id, passenger_id, driver_id, status, price,
             pickup_address, destination_address, created_at
@@ -325,11 +354,11 @@ export const passengerTrips = async (passengerId: number): Promise<Reply> => {
      ORDER BY created_at DESC
      LIMIT 20`,
     [passengerId],
-    replica,
+    source,
   );
   return {
     status: 200,
     body: result.rows.map(tripView),
-    headers: { 'x-source': replica === primary ? 'primary' : 'replica' },
+    headers: { 'x-source': source === primary ? 'primary' : 'replica' },
   };
 };

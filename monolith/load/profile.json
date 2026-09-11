@@ -2,22 +2,31 @@
   "city": {
     "note": "Исходные числа из шага про требования. Заполните расчётом.",
     "tripsPerDay": 0,
+    "tripStateReadsPerTrip": 0,
     "driversOnline": 0,
     "locationIntervalSeconds": 0,
-    "peakFactor": 0
+    "historyViewsPerDay": 0,
+    "supportSearchesPerTrip": 0,
+    "tripPeakFactor": 0,
+    "locationPeakFactor": 0,
+    "historyPeakFactor": 0,
+    "supportPeakFactor": 0
   },
   "stand": {
-    "note": "Частоты стенда. Множитель к городским числам объясните в docs требований.",
-    "scale": 0,
+    "note": "Частоты стенда. Для каждого потока объясните отношение к городскому пику.",
     "orderRate": 0,
     "readRate": 0,
     "locationRate": 0,
+    "nearbyRate": 0,
     "historyRate": 0,
+    "supportRate": 0,
     "duration": "30s",
     "warmup": "10s"
   },
   "targets": {
     "p95Ms": 0,
+    "orderP95Ms": 0,
+    "dataAccessP95Ms": 0,
     "errorRate": 0
   }
 }

@@ -67,6 +67,8 @@ services:
     volumes:
       - .:/app
     command: make start
+    env_file:
+      - ./service.env
     environment:
       PORT: 8080
       DATABASE_URL: postgres://postgres@db:5432/taxi
