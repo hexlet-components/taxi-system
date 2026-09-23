@@ -1,0 +1,22 @@
+{
+  "city": {
+    "note": "Заполните исходными числами и результатами расчёта.",
+    "tripsPerDay": 0,
+    "tripStateReadsPerTrip": 0,
+    "historyViewsPerDay": 0,
+    "tripPeakFactor": 0,
+    "historyPeakFactor": 0
+  },
+  "stand": {
+    "note": "Объясните границу локального опыта в design.md.",
+    "orderRate": 0,
+    "readRate": 0,
+    "historyRate": 0,
+    "duration": "30s",
+    "warmup": "10s"
+  },
+  "targets": {
+    "historyP95Ms": 0,
+    "errorRate": 0
+  }
+}
