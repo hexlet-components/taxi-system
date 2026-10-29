@@ -6,5 +6,8 @@
 | --- | --- | --- |
 | [async-models](./async-models) | async-interaction-models, kafka-log | Распределение задания между исполнителями, независимые подписки RabbitMQ и чтение истории двумя группами Kafka |
 | [kafka](./kafka) | topics-and-partitions | Выбор партиции по ключу и порядок записей двух поездок |
+| [postgres](./postgres) | delivery-guarantees, database-changes | Учебная база PostgreSQL для SQL-опытов с постоянными таблицами и двумя сессиями |
+| [cdc](./cdc) | cdc | Первоначальный снимок PostgreSQL, поток изменений и продолжение после остановки Kafka Connect |
+| [sink](./sink) | sink-delivery, analytical-model, replay | Пакетная запись из Kafka в ClickHouse, повторная публикация и SQL-опыты витрины |
 
 Для запуска нужны Docker и Docker Compose. Команды выполняются из каталога выбранного примера. Каждый пример использует собственное имя проекта Compose, поэтому его окружение можно остановить отдельно. Программы печатают результаты передачи и чтения сообщений, которые разбираются в уроках.
