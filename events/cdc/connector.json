@@ -1,0 +1,22 @@
+{
+  "name": "taxi-trips",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "taxi",
+    "topic.prefix": "taxi",
+    "plugin.name": "pgoutput",
+    "slot.name": "taxi_trips",
+    "publication.name": "taxi_trips_publication",
+    "publication.autocreate.mode": "filtered",
+    "table.include.list": "public.trips",
+    "snapshot.mode": "initial",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false"
+  }
+}

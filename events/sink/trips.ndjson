@@ -1,0 +1,2 @@
+{"event_id":"e101v1","trip_id":101,"version":1,"city_id":1,"occurred_at":"2026-10-12 23:58:00","amount_cents":50000}
+{"event_id":"e102v1","trip_id":102,"version":1,"city_id":1,"occurred_at":"2026-10-12 22:00:00","amount_cents":70000}
