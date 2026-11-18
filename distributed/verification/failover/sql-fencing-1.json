@@ -1,0 +1,82 @@
+{
+  "name": "sql-fencing-1",
+  "platform": {
+    "os": "darwin",
+    "arch": "arm64",
+    "docker": "aarch64"
+  },
+  "images": {
+    "postgres": {
+      "base": "postgres:18.7-bookworm",
+      "version": "postgres (PostgreSQL) 18.7 (Debian 18.7-1.pgdg12+2)"
+    },
+    "patroni": "sha256:6d2d76064ee514007aadcbc8ffacd432b81ed9cd42bc181ec12795bec770dcfe",
+    "etcd": "[\"gcr.io/etcd-development/etcd@sha256:60a30b5d81b2217555e2cfb9537f655b7ba97220b99c39ee2e162a7127225890\"]",
+    "router": "[\"haproxy@sha256:3b80483d47e1c7d1fc7eb4b9104f33d9a51259769be299eb675524dca2bc8157\"]"
+  },
+  "events": [
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 11269,
+      "action": "ready",
+      "seconds": 11.027128625000001,
+      "primary": "p1"
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 12585,
+      "action": "holder-paused",
+      "generation": 1
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 13494,
+      "action": "activate",
+      "generation": 2
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 13705,
+      "action": "ack",
+      "id": "new",
+      "driver": 1,
+      "generation": 2
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 13901,
+      "action": "ack",
+      "id": "new",
+      "driver": 1,
+      "generation": 2
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 14186,
+      "action": "old-result",
+      "result": "stale"
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 17019,
+      "action": "restart-old-result",
+      "result": "stale"
+    },
+    {
+      "case": "sql-fencing-1",
+      "elapsedMs": 18086,
+      "action": "reacquire-after-restart",
+      "generation": 3,
+      "oldGenerationResult": "stale"
+    }
+  ],
+  "generation": 3,
+  "durableCoordinatorGeneration": 3,
+  "rows": [
+    {
+      "operation_id": "new",
+      "driver_id": 1,
+      "generation": 2
+    }
+  ]
+}

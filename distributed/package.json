@@ -1,0 +1,13 @@
+{
+  "name": "taxi-distributed",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "start": "node src/server.ts",
+    "check": "tsc --noEmit",
+    "test": "node --test --test-concurrency=1 src/system.test.ts"
+  },
+  "dependencies": {"pg": "^8.16.3"},
+  "devDependencies": {"@types/node": "^26.0.0", "@types/pg": "^8.15.5", "typescript": "^5.9.2"}
+}

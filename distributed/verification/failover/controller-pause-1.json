@@ -1,0 +1,204 @@
+{
+  "name": "controller-pause-1",
+  "platform": {
+    "os": "darwin",
+    "arch": "arm64",
+    "docker": "aarch64"
+  },
+  "images": {
+    "postgres": {
+      "base": "postgres:18.7-bookworm",
+      "version": "postgres (PostgreSQL) 18.7 (Debian 18.7-1.pgdg12+2)"
+    },
+    "patroni": "sha256:6d2d76064ee514007aadcbc8ffacd432b81ed9cd42bc181ec12795bec770dcfe",
+    "etcd": "[\"gcr.io/etcd-development/etcd@sha256:60a30b5d81b2217555e2cfb9537f655b7ba97220b99c39ee2e162a7127225890\"]",
+    "router": "[\"haproxy@sha256:3b80483d47e1c7d1fc7eb4b9104f33d9a51259769be299eb675524dca2bc8157\"]"
+  },
+  "events": [
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 9708,
+      "action": "ready",
+      "seconds": 9.431225792000012,
+      "primary": "p2"
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 10455,
+      "action": "ack",
+      "id": "before",
+      "driver": 1,
+      "host": "router"
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 12040,
+      "action": "patroni-paused",
+      "processState": "T",
+      "postgresStillRunning": true
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 34638,
+      "action": "new-primary",
+      "old": "p2",
+      "fresh": "p1",
+      "failoverSeconds": 22.597802874999992
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 34839,
+      "action": "ack",
+      "id": "after",
+      "driver": 2,
+      "host": "router"
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 35345,
+      "action": "old-write",
+      "result": "accepted",
+      "id": "stale-writer",
+      "existingConnection": true
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 35736,
+      "action": "old-snapshot",
+      "rows": [
+        {
+          "operation_id": "before",
+          "driver_id": 1,
+          "generation": 0
+        },
+        {
+          "operation_id": "stale-writer",
+          "driver_id": 99,
+          "generation": 0
+        }
+      ]
+    },
+    {
+      "case": "controller-pause-1",
+      "elapsedMs": 42941,
+      "action": "former-primary-is-replica",
+      "rows": [
+        {
+          "operation_id": "after",
+          "driver_id": 2,
+          "generation": 0
+        },
+        {
+          "operation_id": "before",
+          "driver_id": 1,
+          "generation": 0
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "operation_id": "after",
+      "driver_id": 2,
+      "generation": 0
+    },
+    {
+      "operation_id": "before",
+      "driver_id": 1,
+      "generation": 0
+    }
+  ],
+  "old": "p2",
+  "fresh": "p1",
+  "directOutput": "connected\nstale-write-accepted\n",
+  "stats": [
+    {
+      "BlockIO": "184kB / 0B",
+      "CPUPerc": "0.00%",
+      "Container": "04bde5af91e7174da4ed7668b362d08e7bf859a26c0219118907213eb137ca6d",
+      "ID": "04bde5af91e7",
+      "MemPerc": "0.71%",
+      "MemUsage": "932KiB / 128MiB",
+      "Name": "sdp-35984-client-1",
+      "NetIO": "109kB / 58.3kB",
+      "PIDs": "1"
+    },
+    {
+      "BlockIO": "24.6kB / 1.01MB",
+      "CPUPerc": "2.15%",
+      "Container": "14306f4239bc02e8904b1520b7f665494f333ed7e92d61cc64a57e5ec8d94f13",
+      "ID": "14306f4239bc",
+      "MemPerc": "16.61%",
+      "MemUsage": "31.89MiB / 192MiB",
+      "Name": "sdp-35984-e1-1",
+      "NetIO": "336kB / 371kB",
+      "PIDs": "13"
+    },
+    {
+      "BlockIO": "553kB / 1.02MB",
+      "CPUPerc": "1.54%",
+      "Container": "9410d7d8798c6740b1736d49ba4a02ab20042bc623ca75d4e5d075dbf0d123c3",
+      "ID": "9410d7d8798c",
+      "MemPerc": "13.58%",
+      "MemUsage": "26.08MiB / 192MiB",
+      "Name": "sdp-35984-e2-1",
+      "NetIO": "259kB / 348kB",
+      "PIDs": "13"
+    },
+    {
+      "BlockIO": "20.5kB / 1.01MB",
+      "CPUPerc": "1.13%",
+      "Container": "f307cfaba5c71d497e20882bb807bfdb44bf444f022c5c6eead0a1b151bbd678",
+      "ID": "f307cfaba5c7",
+      "MemPerc": "12.88%",
+      "MemUsage": "24.73MiB / 192MiB",
+      "Name": "sdp-35984-e3-1",
+      "NetIO": "170kB / 159kB",
+      "PIDs": "11"
+    },
+    {
+      "BlockIO": "51.3MB / 109MB",
+      "CPUPerc": "0.92%",
+      "Container": "e5703935098e1648afecd47c263c3457cb0f5768b1217250ca70427f75f026b1",
+      "ID": "e5703935098e",
+      "MemPerc": "21.32%",
+      "MemUsage": "109.1MiB / 512MiB",
+      "Name": "sdp-35984-p1-1",
+      "NetIO": "62.4MB / 89.8MB",
+      "PIDs": "31"
+    },
+    {
+      "BlockIO": "14.4MB / 256MB",
+      "CPUPerc": "1.13%",
+      "Container": "069d588e8a5bfabd2195ac7b675b6f07bb6a4f3bc7f2513ee42974a40f87fccf",
+      "ID": "069d588e8a5b",
+      "MemPerc": "15.11%",
+      "MemUsage": "77.39MiB / 512MiB",
+      "Name": "sdp-35984-p2-1",
+      "NetIO": "89.3MB / 104MB",
+      "PIDs": "28"
+    },
+    {
+      "BlockIO": "0B / 109MB",
+      "CPUPerc": "1.09%",
+      "Container": "57b8ee808a14f593a562f1b51d8cce46b329cc7ef68d70abb6469b83dc345da5",
+      "ID": "57b8ee808a14",
+      "MemPerc": "12.60%",
+      "MemUsage": "64.49MiB / 512MiB",
+      "Name": "sdp-35984-p3-1",
+      "NetIO": "42.6MB / 232kB",
+      "PIDs": "28"
+    },
+    {
+      "BlockIO": "4.89MB / 0B",
+      "CPUPerc": "0.80%",
+      "Container": "4a2e79988b0ff9eb6efc6a140c62e0c42e8a1fbbdbacc4222d807391ee2189d2",
+      "ID": "4a2e79988b0f",
+      "MemPerc": "32.23%",
+      "MemUsage": "20.62MiB / 64MiB",
+      "Name": "sdp-35984-router-1",
+      "NetIO": "309kB / 114kB",
+      "PIDs": "11"
+    }
+  ]
+}

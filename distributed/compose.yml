@@ -1,0 +1,95 @@
+x-db: &db
+  image: postgres:18
+  environment:
+    POSTGRES_PASSWORD: local-demo-only
+    POSTGRES_DB: taxi
+  healthcheck:
+    test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U postgres -d taxi]
+    interval: 1s
+    timeout: 2s
+    retries: 40
+
+x-app: &app
+  build: .
+  image: taxi-distributed:local
+  init: true
+  healthcheck:
+    test: [CMD, node, -e, "fetch('http://localhost:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+
+services:
+  coordinator:
+    <<: *db
+    volumes:
+      - coordinator:/var/lib/postgresql
+      - ./db/coordinator.sql:/docker-entrypoint-initdb.d/01.sql:ro
+  db-a:
+    <<: *db
+    volumes:
+      - data-a:/var/lib/postgresql
+      - ./db/shard.sql:/docker-entrypoint-initdb.d/01.sql:ro
+  db-b:
+    <<: *db
+    volumes:
+      - data-b:/var/lib/postgresql
+      - ./db/shard.sql:/docker-entrypoint-initdb.d/01.sql:ro
+  payments-db:
+    <<: *db
+    volumes:
+      - payments:/var/lib/postgresql
+      - ./db/payments.sql:/docker-entrypoint-initdb.d/01.sql:ro
+  node-a:
+    <<: *app
+    environment:
+      ROLE: shard
+      NODE_NAME: node-a
+      DATABASE_URL: postgres://postgres:local-demo-only@db-a/taxi
+    depends_on:
+      db-a: {condition: service_healthy}
+  node-b:
+    <<: *app
+    environment:
+      ROLE: shard
+      NODE_NAME: node-b
+      DATABASE_URL: postgres://postgres:local-demo-only@db-b/taxi
+    depends_on:
+      db-b: {condition: service_healthy}
+  payments:
+    <<: *app
+    environment:
+      ROLE: payments
+      DATABASE_URL: postgres://postgres:local-demo-only@payments-db/taxi
+    depends_on:
+      payments-db: {condition: service_healthy}
+  gateway:
+    <<: *app
+    ports: ["127.0.0.1:${WEB_PORT:-8081}:8080"]
+    environment:
+      ROLE: gateway
+      DATABASE_URL: postgres://postgres:local-demo-only@coordinator/taxi
+    depends_on:
+      coordinator: {condition: service_healthy}
+      node-a: {condition: service_healthy}
+      node-b: {condition: service_healthy}
+  worker:
+    <<: *app
+    environment:
+      ROLE: worker
+      DATABASE_URL: postgres://postgres:local-demo-only@coordinator/taxi
+    depends_on:
+      gateway: {condition: service_healthy}
+      payments: {condition: service_healthy}
+  tools:
+    <<: *app
+    profiles: [tools]
+    environment:
+      DATABASE_URL: postgres://postgres:local-demo-only@coordinator/taxi
+    command: [node, --version]
+
+volumes:
+  coordinator:
+  data-a:
+  data-b:
+  payments:

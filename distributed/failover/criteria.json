@@ -1,0 +1,18 @@
+{
+  "maximumContainerMemoryMiB": 3072,
+  "maximumContainerCpu": 4,
+  "startupSeconds": 120,
+  "imagePreparationSeconds": 600,
+  "failoverSeconds": 45,
+  "repeats": 1,
+  "requiredCategoryMatches": 1,
+  "scope": "one region; three coordinator members and three PostgreSQL nodes; grouped AZ failure injection is untested",
+  "cases": {
+    "sql-fencing": "new generation accepted, old rejected before and after resource restart; one effect per operation",
+    "sync-network": "old primary demotes after DCS isolation, active connection stops writing, new primary preserves acknowledged orders, former primary returns as replica",
+    "async-loss": "stop replication before acknowledged writes, lose primary, observe predetermined missing order ids, rebuild former primary",
+    "controller-pause": "pause only Patroni, keep PostgreSQL and existing connection alive, allow lease expiry and promotion, detect successful stale write as unsafe model"
+  },
+  "fallback": "retain input history, client responses and SQL snapshots; independent offline verifier must classify safe cases and detect the deliberately unsafe cases",
+  "scopeClarification": "After the pilot, the placement context was clarified: only process and network faults were injected, no AZ-level group failure."
+}

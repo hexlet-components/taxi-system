@@ -1,0 +1,21 @@
+$ node --test --test-concurrency=1 src/system.test.ts
+✔ both cities route to independent owners and confirm a booking (740.815125ms)
+✔ idempotency preserves one booking and rejects changed input (406.494875ms)
+✔ two requests cannot assign one driver at the same version (56.092208ms)
+✔ outbox survives a stopped worker and a restarted shard (4290.362833ms)
+✔ a payment committed before timeout is recovered after orchestrator restart (4796.433333ms)
+✔ cancellation wins over late reserve and closes the reservation (573.478125ms)
+✔ unconfirmed release keeps compensation pending and restart resumes it (2401.230625ms)
+✔ release before reserve is terminal, with immutable payment input (38.984792ms)
+✔ bounded retries become blocked and explicit retry restores progress (7301.511958ms)
+✔ interrupted transfer resumes; stale controllers and old routes cannot write (4152.548625ms)
+✔ a later transfer can move current data back with a new map version (514.293625ms)
+✔ one stopped data owner does not stop reads of the other city (3135.6755ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54471.457166

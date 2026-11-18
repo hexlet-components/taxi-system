@@ -1,0 +1,9 @@
+services:
+  coordinator:
+    ports: ["127.0.0.1::5432"]
+  node-a:
+    ports: ["127.0.0.1::8080"]
+  node-b:
+    ports: ["127.0.0.1::8080"]
+  payments:
+    ports: ["127.0.0.1::8080"]

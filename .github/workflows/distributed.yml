@@ -1,0 +1,35 @@
+name: Distributed system
+on:
+  push:
+    paths: [distributed/**, mise.toml, .github/workflows/distributed.yml]
+  pull_request:
+    paths: [distributed/**, mise.toml, .github/workflows/distributed.yml]
+  workflow_dispatch:
+    inputs:
+      failover:
+        description: Run the optional Patroni fault experiments
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: distributed
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v5
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: oxlint -c oxlint.config.ts src
+      - run: oxfmt --check src
+      - run: pnpm test
+      - name: Optional failover experiments
+        if: inputs.failover
+        run: |
+          docker build -t system-design-pilot-patroni:4.1.5 failover
+          node failover/run.ts
+          node failover/verify.ts
