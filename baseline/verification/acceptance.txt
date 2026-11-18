@@ -1,0 +1,18 @@
+$ node --test --test-concurrency=1 src/system.test.ts
+✔ the load balancer uses both unchanged monolith instances (312.557375ms)
+✔ one creation reaches primary, replica, Kafka summary and notification owner (713.338125ms)
+✔ idempotent replay creates one trip, one event and one notification job (883.492625ms)
+✔ a rejected transaction leaves no outbox event or notification job (807.630667ms)
+✔ stopped consumer leaves a stale view while creation continues, then catches up (8465.752625ms)
+✔ creation persists work while Kafka is down and publication resumes (21140.367917ms)
+✔ a failed notification is retried independently of the request (1784.6575ms)
+✔ a lost notification response survives worker restart with one receiver effect (3441.313375ms)
+✔ replayed old events cannot revert an updated trip projection (2412.85875ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 74186.907291

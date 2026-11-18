@@ -1,0 +1,9 @@
+{
+  "name": "taxi-baseline",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {"check": "tsc --noEmit", "test": "node --test --test-concurrency=1 src/system.test.ts"},
+  "dependencies": {"pg": "^8.23.1", "kafkajs": "2.2.4"},
+  "devDependencies": {"@types/node": "^26.6.6", "@types/pg": "^8.23.1", "typescript": "^5.9.3"}
+}
